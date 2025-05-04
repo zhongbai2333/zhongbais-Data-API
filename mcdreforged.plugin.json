@@ -1,0 +1,18 @@
+{
+    "id": "zhongbais_data_api",
+    "version": "0.0.1",
+    "name": "zhongbaisDataAPI",
+    "description": {
+        "en_us": "Self use Data Command API",
+        "zh_cn": "自用的Data命令API"
+    },
+    "author": "zhongbai233",
+    "link": "https://github.com/zhongbai2333/zhongbais-Data-API",
+    "dependencies": {
+    },
+    "entrypoint": "zhongbais_data_api.entry",
+    "archive_name": "zhongbaisDataAPI-v{version}.mcdr",
+    "resources": [
+        "LICENSE"
+    ]
+}
