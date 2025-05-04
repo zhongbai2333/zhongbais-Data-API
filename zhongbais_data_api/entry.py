@@ -9,9 +9,22 @@ _config, __mcdr_server, get_pos = None, None, None
 
 
 def get_player_info() -> dict:
+    """
+    获取玩家信息字典
+
+    Returns:
+        dict: 玩家信息
+    """
     return get_pos.player_info
 
+
 def get_player_list() -> list:
+    """
+    获取在线玩家列表
+
+    Returns:
+        list: 玩家列表
+    """
     return list(get_pos.player_info.keys())
 
 
