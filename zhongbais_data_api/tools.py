@@ -34,7 +34,7 @@ class ObservableDict(dict):
         super().__setitem__(key, value)
         # 数据变更回调
         for cb in self._callbacks:
-            cb(self)
+            cb(self.copy())
         # 如果是新插入键，则触发 key 变更回调
         if is_new:
             self._trigger_key_callbacks()
@@ -45,7 +45,7 @@ class ObservableDict(dict):
         super().__delitem__(key)
         # 数据删除回调
         for cb in self._callbacks:
-            cb(self)
+            cb(self.copy())
         # key 列表变更回调
         self._trigger_key_callbacks()
 
@@ -53,7 +53,7 @@ class ObservableDict(dict):
         if key in self:
             val = super().pop(key)
             for cb in self._callbacks:
-                cb(self)
+                cb(self.copy())
             self._trigger_key_callbacks()
             return val
         return default

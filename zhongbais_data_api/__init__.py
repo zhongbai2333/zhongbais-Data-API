@@ -12,7 +12,7 @@ class zbDataAPI(object):
         Returns:
             dict: 玩家信息 / Player information
         """
-        return get_pos.player_info
+        return get_pos.player_info.copy()
 
     @staticmethod
     def register_player_info_callback(func) -> None:
