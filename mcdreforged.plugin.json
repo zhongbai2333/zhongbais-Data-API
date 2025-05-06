@@ -1,10 +1,10 @@
 {
     "id": "zhongbais_data_api",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "name": "zhongbaisDataAPI",
     "description": {
-        "en_us": "Self use Data Command API",
-        "zh_cn": "自用的Data命令API"
+        "en_us": "Polling /data command related APIs",
+        "zh_cn": "轮询 /data 命令相关API"
     },
     "author": "zhongbai233",
     "link": "https://github.com/zhongbai2333/zhongbais-Data-API",
