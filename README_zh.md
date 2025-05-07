@@ -70,11 +70,11 @@ def on_player_update(self, name: str, info: dict):
 
 ### `zbDataAPI.register_player_info_callback(func)`
 
-注册一个回调函数 `func(name: str, info: dict)`，当任意玩家的 **完整信息**（Pos/Rot/Dim/A FK）变化时触发。
+注册一个回调函数 `func(player_info: dict)`，当任意玩家的 **完整信息**（Pos/Rot/Dim/AFK）变化时触发。
 
 - **参数**
 
-  - `func(name, info)`：`name` 为玩家名，`info` 为最新的数据字典。
+  - `func(player_info)`：`player_info` 为最新的玩家数据字典。
 
 ### `zbDataAPI.register_player_list_callback(func)`
 
