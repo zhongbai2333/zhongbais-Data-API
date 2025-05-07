@@ -70,14 +70,13 @@ Returns a list of names of all currently online players:
 
 ### `zbDataAPI.register_player_info_callback(func)`
 
-Registers a callback `func(name: str, info: dict)`, triggered whenever any player’s **complete info** (Pos/Rot/Dim/AFK) changes.
+Registers a callback `func(player_info: dict)`, triggered whenever any player’s **complete info** (Pos/Rot/Dim/AFK) changes.
 
 - **Parameters**
 
-  - `func(name, info)`:
+  - `func(player_info)`:
 
-    - `name`: the player’s name
-    - `info`: the updated data dictionary
+    - `player_info`: the updated data dictionary
 
 ### `zbDataAPI.register_player_list_callback(func)`
 
