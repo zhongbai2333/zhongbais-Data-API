@@ -71,20 +71,22 @@ jobs:
               : '';
         
           // 3. 拉取自上一个 release 以来所有关闭的 issue/PR
-          const issuesResp = await github.rest.issues.listForRepo({
-              owner, repo,
-              state: 'closed',
-              since,
-              per_page: 100
-          });
+          const params = { owner, repo, state: 'closed', per_page: 100 };
+          if (since) params.since = since;
+          const issuesResp = await github.rest.issues.listForRepo(params);
           const items = issuesResp.data;
-
+          const issuesResp = await github.rest.issues.listForRepo({ owner, repo, state: 'closed', since, per_page: 100 });
+          // 过滤掉带有 wontfix 或 duplicate 标签的
+          const items = issuesResp.data.filter(item =>
+            !item.labels.some(lbl => lbl.name.toLowerCase() === 'wontfix' || lbl.name.toLowerCase() === 'duplicate')
+          );
+ 
           // 4. 按标签分组
           const groups = { Fix: [], Update: [], Feature: [] };
           items.forEach(item => {
               item.labels.forEach(lbl => {
               if (lbl.name === 'bug')         groups.Fix.push(item);
-              else if (lbl.name === 'Update') groups.Update.push(item);
+              else if (lbl.name === 'update') groups.Update.push(item);
               else if (lbl.name === 'enhancement') groups.Feature.push(item);
               });
           });
