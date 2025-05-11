@@ -1,6 +1,7 @@
 name: CI for MCDR Plugin
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "main" ]
     tags: [ "v*" ]
@@ -8,6 +9,7 @@ on:
       - '**.py'          # 所有 Python 文件
       - 'requirements.txt' # 依赖清单
       - 'mcdreforged.plugin.json'
+      - '.github/workflows/package.yml' # CI 文件
   pull_request:
 
 jobs:
