@@ -46,9 +46,9 @@ class zbDataAPI(object):
         Register a callback, triggered when the player list changes
 
         Args:
-            func (callable): 回调函数，接收参数 (player_list: list)
+            func (callable): 回调函数，接收参数 (player_name: str, player_list: list)
 
-                             The callback function, receives (player_list: list)
+                             The callback function, receives (player_name: str, player_list: list)
 
         Returns:
             None
