@@ -1,6 +1,6 @@
 # zhongbais Data API
 
-一个基于 MCDReforged 的玩家位置信息获取与回调 API，封装了定时拉取、AFK 检测等功能，方便其他插件或脚本统一访问和订阅玩家位置、维度、朝向等数据变化。
+一个基于 MCDReforged 的玩家位置信息获取与回调 API，封装了定时拉取等功能，方便其他插件或脚本统一访问和订阅玩家位置、维度、朝向等数据变化。
 
 [English](README.md) | 简中
 
@@ -8,9 +8,8 @@
 
 ## 特性
 
-- **定时拉取**：自动按配置的间隔定时通过 RCON 获取所有在线玩家的 Pos/Dim/Rot 数据
-- **AFK 检测**：根据配置的 AFK 超时时间，自动标记玩家是否进入 AFK 状态  
-- **回调机制**：基于 `ObservableDict`，自动触发回调，方便业务层实时处理数据变化  
+- **定时拉取**：自动按配置的间隔通过 RCON 获取所有在线玩家的 NBT 数据  
+- **回调机制**：封装了回调列表，支持按需订阅玩家信息变化或在线列表增减  
 
 ---
 
@@ -21,72 +20,74 @@ from mcdreforged.api.all import PluginServerInterface, new_thread
 from zhongbais_data_api import zbDataAPI
 
 def on_load(self, server: PluginServerInterface, old):
-    # 注册回调：当玩家信息更新时打印
+    # 监听所有NBT的信息变化
     zbDataAPI.register_player_info_callback(self.on_player_update)
+    # 也可以只监听部分NBT的信息变化
+    # zbDataAPI.register_player_info_callback(self.on_player_update, ['Pos', 'Dimension', ...])
+
+    # 监听在线玩家列表变化
+    zbDataAPI.register_player_list_callback(self.on_player_list_change)
 
 def on_player_update(self, name: str, info: dict):
     """
     name: 玩家名
     info: {
-        "position": [x, y, z],
-        "rotation": [yaw, pitch],
-        "dimension": "minecraft:overworld",
-        "last_update_time":  时间戳,
-        "is_afk": 是否 AFK
+      "Pos": [...],         # 位置 [x, y, z]
+      "Rotation": [...],    # 朝向 [yaw, pitch]
+      "Dimension": "...",   # 维度
+      …                     # 可根据配置添加其他字段
     }
     """
     self.server.logger.info(f"[PlayerUpdate] {name} -> {info}")
+
+def on_player_list_change(self, player: str, current_list: list):
+    # player: 新增或离线的玩家名
+    # current_list: 当前所有在线玩家列表
+    self.server.logger.info(f"[PlayerList] {player} changed, now: {current_list}")
+
+# 在需要时手动触发一次拉取（例如测试时）
+zbDataAPI.refresh_getpos()
 ```
 
 ---
 
 ## API 文档
 
-### `zbDataAPI.get_player_info() -> dict`
+### `zbDataAPI.register_player_info_callback(func, list=[]) -> None`
 
-返回当前所有在线玩家的信息字典，结构为：
+自动回传玩家的 NBT 信息（位置、维度、朝向等）。
+如果 `list` 为空（默认），监听所有NBT；否则仅对 `list` 中的NBT回传。
 
-```python
-{
-  "Alice": {
-    "position": [x, y, z],
-    "rotation": [yaw, pitch],
-    "dimension": "minecraft:overworld",
-    "last_update_time":  时间戳,
-    "is_afk": False,
-  },
-  "Bob": { … },
-  …
-}
-```
+> **参数**
+>
+> - `func(name: str, info: dict)`：回调函数，`name` 是玩家名，`info` 是该玩家的最新信息字典。
+> - `list: list`（可选）：要监听的NBT列表，默认 `[]`。
+
+---
 
 ### `zbDataAPI.get_player_list() -> list`
 
-返回当前所有在线玩家的名字列表：
+获取当前所有在线玩家的名字列表。
 
 ```python
-["Alice", "Bob", …]
+players = zbDataAPI.get_player_list()
 ```
 
-### `zbDataAPI.register_player_info_callback(func)`
+---
 
-注册一个回调函数 `func(player_info: dict)`，当任意玩家的 **完整信息**（Pos/Rot/Dim/AFK）变化时触发。
+### `zbDataAPI.register_player_list_callback(func) -> None`
 
-- **参数**
+当有玩家上线或下线时触发。
 
-  - `func(player_info)`：`player_info` 为最新的玩家数据字典。
+> **参数**
+>
+> - `func(player: str, current_list: list)`：回调函数，`player` 是发生变化的玩家名，`current_list` 是最新的在线玩家列表。
 
-### `zbDataAPI.register_player_list_callback(func)`
-
-注册一个回调函数 `func(player_list: list)`，当在线玩家 **增减** 时触发。
-
-- **参数**
-
-  - `func(player_list)`：`player_list` 为最新的玩家名列表。
+---
 
 ### `zbDataAPI.refresh_getpos() -> None`
 
-手动触发一次拉取，等同于调用内部的 `get_pos.getpos_player()`。
+手动触发一次玩家信息拉取，与内部定时拉取逻辑等效。
 
 ---
 
@@ -94,7 +95,7 @@ def on_player_update(self, name: str, info: dict):
 
 1. Fork 本仓库
 2. 新建分支 `feature/xxx`
-3. 提交你的改动并发 Pull Request
+3. 提交改动并发起 Pull Request
 
 欢迎提交 issue 和 PR，让这个 API 更加完善！
 

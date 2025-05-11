@@ -1,6 +1,6 @@
 # zhongbais Data API
 
-A player location retrieval and callback API built on MCDReforged. It wraps timed polling, AFK detection, and more—making it easy for other plugins or scripts to access and subscribe to changes in player position, dimension, orientation, and AFK status.
+A MCDReforged–based player position retrieval and callback API. It encapsulates timed polling and callback mechanisms, making it easy for other plugins or scripts to uniformly access and subscribe to changes in player position, dimension, rotation, and more.
 
 English | [简中](README_zh.md)
 
@@ -8,9 +8,8 @@ English | [简中](README_zh.md)
 
 ## Features
 
-- **Timed Polling**: Automatically fetch Pos/Dim/Rot data for all online players at the configured interval via RCON  
-- **AFK Detection**: Automatically mark players as AFK based on a configurable timeout  
-- **Callback Mechanism**: Built on `ObservableDict`, callbacks are triggered on data changes for easy integration  
+- **Timed Polling**: Automatically polls all online players’ NBT data via RCON at the configured interval  
+- **Callback System**: Built-in lists of callbacks let you subscribe to specific NBT fields or to player list changes  
 
 ---
 
@@ -21,89 +20,87 @@ from mcdreforged.api.all import PluginServerInterface, new_thread
 from zhongbais_data_api import zbDataAPI
 
 def on_load(self, server: PluginServerInterface, old):
-    # Register a callback to log whenever a player's info updates
+    # Listen for *all* NBT changes
     zbDataAPI.register_player_info_callback(self.on_player_update)
+    # Or listen for specific NBT fields only:
+    # zbDataAPI.register_player_info_callback(self.on_player_update, ['Pos', 'Dimension', ...])
+
+    # Listen for player join/leave events
+    zbDataAPI.register_player_list_callback(self.on_player_list_change)
 
 def on_player_update(self, name: str, info: dict):
     """
-    name: player's name
+    name: player’s name
     info: {
-        "position": [x, y, z],
-        "rotation": [yaw, pitch],
-        "dimension": "minecraft:overworld",
-        "last_update_time": timestamp,
-        "is_afk": bool
+      "Pos": [...],         # position [x, y, z]
+      "Rotation": [...],    # rotation [yaw, pitch]
+      "Dimension": "...",   # dimension
+      …                     # other fields as configured
     }
     """
     self.server.logger.info(f"[PlayerUpdate] {name} -> {info}")
+
+def on_player_list_change(self, player: str, current_list: list):
+    # player: name of the player who joined or left
+    # current_list: list of all online players
+    self.server.logger.info(f"[PlayerList] {player} changed, now: {current_list}")
+
+# Manually trigger a data fetch (e.g. for testing)
+zbDataAPI.refresh_getpos()
 ```
 
 ---
 
-## API Reference
+## API Documentation
 
-### `zbDataAPI.get_player_info() -> dict`
+### `zbDataAPI.register_player_info_callback(func, list=[]) -> None`
 
-Returns a dictionary of all currently online players’ info, for example:
+Automatically delivers NBT data (position, dimension, rotation, etc.) for players.
+If `list` is empty (default), listens to *all* players; otherwise, only to the specified NBT fields.
 
-```python
-{
-  "Alice": {
-    "position": [x, y, z],
-    "rotation": [yaw, pitch],
-    "dimension": "minecraft:overworld",
-    "last_update_time": timestamp,
-    "is_afk": False,
-  },
-  "Bob": { … },
-  …
-}
-```
+> **Parameters**
+>
+> - `func(name: str, info: dict)`: callback function; `name` is the player’s name, `info` is a dict of the latest data.
+> - `list: list` (optional): list of NBT field names to listen for, default `[]`.
+
+---
 
 ### `zbDataAPI.get_player_list() -> list`
 
-Returns a list of names of all currently online players:
+Returns the list of currently online player names.
 
 ```python
-["Alice", "Bob", …]
+players = zbDataAPI.get_player_list()
 ```
 
-### `zbDataAPI.register_player_info_callback(func)`
+---
 
-Registers a callback `func(player_info: dict)`, triggered whenever any player’s **complete info** (Pos/Rot/Dim/AFK) changes.
+### `zbDataAPI.register_player_list_callback(func) -> None`
 
-- **Parameters**
+Triggered when a player joins or leaves.
 
-  - `func(player_info)`:
+> **Parameters**
+>
+> - `func(player: str, current_list: list)`: callback function; `player` is the name of the joined/left player, `current_list` is the updated list of online players.
 
-    - `player_info`: the updated data dictionary
-
-### `zbDataAPI.register_player_list_callback(func)`
-
-Registers a callback `func(player_list: list)`, triggered when the online player list changes (joins or leaves).
-
-- **Parameters**
-
-  - `func(player_list)`:
-
-    - `player_list`: the updated list of player names
+---
 
 ### `zbDataAPI.refresh_getpos() -> None`
 
-Manually triggers a poll, equivalent to calling the internal `get_pos.getpos_player()`.
+Manually triggers a data fetch, equivalent to the internal timed polling.
 
 ---
 
 ## Development & Contribution
 
 1. Fork this repository
-2. Create a new branch `feature/xxx`
+2. Create a branch `feature/xxx`
 3. Commit your changes and open a Pull Request
 
-Feel free to open issues and PRs to improve this API!
+Contributions, issues, and PRs are welcome to make this API even better!
 
 ---
 
 ## License
 
-This project is licensed under the GPLv3. See [LICENSE](./LICENSE) for details.
+This project is licensed under GPLv3. See [LICENSE](./LICENSE) for details.

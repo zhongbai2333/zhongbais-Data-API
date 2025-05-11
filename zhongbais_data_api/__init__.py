@@ -1,35 +1,30 @@
-from zhongbais_data_api.entry import get_pos
+from zhongbais_data_api.entry import get_dat
 
 
 class zbDataAPI(object):
     @staticmethod
-    def get_player_info() -> dict:
+    def register_player_info_callback(
+        func,
+        list = []
+    ) -> None:
         """
-        获取玩家信息字典
+        注册回调函数，按照Config中的刷新时间配置，触发回调
 
-        Get the dictionary of player info
-
-        Returns:
-            dict: 玩家信息 / Player information
-        """
-        return get_pos.player_info.copy()
-
-    @staticmethod
-    def register_player_info_callback(func) -> None:
-        """
-        注册回调函数，在 player_info 发生变化时触发
-
-        Register a callback, triggered when player_info changes
+        Register callback function, configure according to the refresh time in Config, and trigger callback
 
         Args:
             func (callable): 回调函数，接收参数 (name: str, info: dict)
 
                              The callback function, receives (name: str, info: dict)
 
+            list (list): 需要监听的玩家列表，默认为空，表示监听所有NBT
+
+                         The list of players to listen to, default is empty, meaning listen to all NBT
+
         Returns:
             None
         """
-        get_pos.player_info.register_callback(func)
+        get_dat.register_player_info_callback(list, func)
 
     @staticmethod
     def get_player_list() -> list:
@@ -41,7 +36,7 @@ class zbDataAPI(object):
         Returns:
             list: 玩家列表 / List of player names
         """
-        return list(get_pos.player_info.keys())
+        return get_dat.player_list.copy()
 
     @staticmethod
     def register_player_list_callback(func) -> None:
@@ -58,7 +53,7 @@ class zbDataAPI(object):
         Returns:
             None
         """
-        get_pos.player_info.register_key_callback(func)
+        get_dat.register_player_list_callback(func)
 
     @staticmethod
     def refresh_getpos() -> None:
@@ -70,4 +65,4 @@ class zbDataAPI(object):
         Returns:
             None
         """
-        get_pos.getpos_player()
+        get_dat.manual_fetch()
