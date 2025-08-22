@@ -18,11 +18,14 @@ def _is_bot_name(player: str, pattern: str) -> bool:
     """
     if not pattern:
         return False
-    # 包含通配符时使用大小写敏感匹配，确保跨平台一致
-    if any(ch in pattern for ch in "*?[]"):
-        return fnmatch.fnmatchcase(player, pattern)
-    # 无通配符则退回到子串匹配（旧行为）
-    return pattern in player
+    # 统一转小写，进行不区分大小写的匹配
+    name_l = player.lower()
+    patt_l = pattern.lower()
+    # 包含通配符时使用大小写无关的匹配
+    if any(ch in patt_l for ch in "*?[]"):
+        return fnmatch.fnmatchcase(name_l, patt_l)
+    # 无通配符则退回到子串匹配（旧行为，大小写无关）
+    return patt_l in name_l
 
 
 def on_load(server: PluginServerInterface, prev):

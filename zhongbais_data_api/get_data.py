@@ -1,6 +1,7 @@
 import threading
 import re
 import json
+import fnmatch
 from typing import Any, Dict, List, Callable, Tuple, Optional
 from mcdreforged.api.all import new_thread
 from zhongbais_data_api.context import GlobalContext
@@ -30,6 +31,17 @@ class GetDat:
         self.player_list: List[str] = []
         self._player_list_callbacks: List[PlayerListCallback] = []
         self._player_info_callbacks: List[Tuple[List[str], PlayerInfoCallback]] = []
+
+    def _is_bot_name(self, name: str) -> bool:
+        """根据配置判断是否为机器人名（不区分大小写，支持通配符）"""
+        pattern = getattr(self._config, "bot_keyword", "") or ""
+        if not pattern:
+            return False
+        name_l = name.lower()
+        patt_l = pattern.lower()
+        if any(ch in patt_l for ch in "*?[]"):
+            return fnmatch.fnmatchcase(name_l, patt_l)
+        return patt_l in name_l
 
     def init_mcdr(self) -> None:
         """初始化 MCDR 相关引用"""
@@ -94,17 +106,57 @@ class GetDat:
             raw = self._rcon_execute(self.DAT_CMD) or ""
             matches = list(self._dat_pattern.finditer(raw))
 
-            # 1. 分发每位玩家的数据
+            # 1. 分发每位玩家的数据（过滤机器人）
+            debug_samples = []
+            filtered_matches = []
             for m in matches:
                 name = m.group("name").strip()
+                if self._is_bot_name(name):
+                    continue
+                filtered_matches.append(m)
                 raw_nbt = m.group("data")
-                json_str = self._nbt_to_json(raw_nbt)
-                data: Dict[str, Any] = json.loads(json_str)
-                self._dispatch_player_info(name, data)
+                json_str: Optional[str] = None
+                try:
+                    json_str = self._nbt_to_json(raw_nbt)
+                    data: Dict[str, Any] = json.loads(json_str)
+                    self._dispatch_player_info(name, data)
+                    # 收集少量基础信息用于调试
+                    if getattr(self._config, "debug", False) and len(debug_samples) < 3:
+                        debug_samples.append({
+                            "name": name,
+                            "Pos": data.get("Pos"),
+                            "Dimension": data.get("Dimension"),
+                            "Rotation": data.get("Rotation"),
+                        })
+                except Exception as pe:
+                    # 单玩家解析失败不影响其他玩家
+                    self._server.logger.error(
+                        f"[GetDat] JSON parse failed for {name}: {pe}"
+                    )
+                    if getattr(self._config, "debug", False):
+                        snippet_src = (raw_nbt or "")[:300]
+                        snippet_json = (json_str or "")[:300]
+                        self._server.logger.info(
+                            f"[GetDat][debug] SNBT snippet for {name}: {snippet_src}"
+                        )
+                        self._server.logger.info(
+                            f"[GetDat][debug] JSON  snippet for {name}: {snippet_json}"
+                        )
+                    continue
 
             # 2. 在线/离线玩家列表变化
             # 从 Match 对象里取 name
-            online = [m.group("name").strip() for m in matches]
+            online = [m.group("name").strip() for m in filtered_matches]
+
+            # Debug: 输出本轮被获取到数据的玩家列表
+            try:
+                if getattr(self._config, "debug", False):
+                    self._server.logger.info(f"[GetDat][debug] fetched players: {online}")
+                    if debug_samples:
+                        self._server.logger.info(f"[GetDat][debug] basic info samples: {debug_samples}")
+            except Exception:
+                # debug 日志不可影响主流程
+                pass
 
             added = set(online) - set(self.player_list)
             removed = set(self.player_list) - set(online)
@@ -149,14 +201,14 @@ class GetDat:
 
     @staticmethod
     def _nbt_to_json(nbt: str) -> str:
-        """NBT→合法 JSON 的转换（保留原注释）"""
+        """NBT→合法 JSON 的转换（轻量处理，不保证覆盖全部 SNBT 细节）"""
         s = nbt
-        # 1) [I;…] → […], 去掉 I;
-        s = re.sub(r"\[I;(.*?)\]", r"[\1]", s)
+        # 1) [B;…]/[I;…]/[L;…] → […], 去掉类型前缀
+        s = re.sub(r"\[(?:B|I|L);(.*?)\]", r"[\1]", s, flags=re.DOTALL)
         # 2) 仅对真正的键名加双引号
         s = re.sub(r"(?<=[\{\[,])\s*([A-Za-z0-9_]+)\s*:", r'"\1":', s)
         # 3) 去掉浮点后缀 dDfF
         s = re.sub(r"(-?\d+\.\d+)\s*[dDfF]", r"\1", s)
-        # 4) 去掉整数/字节/秒后缀 bBsS
-        s = re.sub(r"(-?\d+)\s*[bBsS]", r"\1", s)
+        # 4) 去掉整数/字节/短整型/长整型后缀 bBsSlL
+        s = re.sub(r"(-?\d+)\s*[bBsSlL]", r"\1", s)
         return s
