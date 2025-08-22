@@ -51,6 +51,24 @@ zbDataAPI.refresh_getpos()
 
 ---
 
+## Configuration
+
+Only the bot detection related config is listed here; others can stay at their defaults:
+
+- bot_prefix (bot keyword)
+  - Used to detect and ignore bot player names.
+  - Supports glob-style wildcards: `*`, `?`, `[]`.
+  - If no wildcard is present, falls back to substring check (backward compatible with older versions).
+  - Matching is case-sensitive.
+  - Examples:
+    - `bot_*`: matches names starting with `bot_`, e.g., `bot_alice`.
+    - `*_bot`: matches names ending with `_bot`, e.g., `helper_bot`.
+    - `Bot??Bot*`: matches `Bot` + any two chars + `Bot` + any suffix, e.g., `Bot12BotX`, `BotA3Bot_something`.
+
+> Tip: To keep the old behavior where any name containing `bot_` is treated as a bot, set it to `bot_` (without wildcards).
+
+---
+
 ## API Documentation
 
 ### `zbDataAPI.register_player_info_callback(func, list=[]) -> None`

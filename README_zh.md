@@ -51,6 +51,24 @@ zbDataAPI.refresh_getpos()
 
 ---
 
+## 配置说明
+
+以下仅列出与“机器人玩家识别”相关的配置项，其他保持默认即可：
+
+- bot_prefix（机器人过滤关键字）
+  - 用于识别并忽略机器人玩家名。
+  - 支持通配符（glob）匹配：`*`, `?`, `[]`。
+  - 若不包含通配符，则按“子串包含”判断（与旧版本一致）。
+  - 匹配区分大小写。
+  - 示例：
+    - `bot_*`：匹配以 `bot_` 开头的名字，如 `bot_alice`。
+    - `*_bot`：匹配以 `_bot` 结尾的名字，如 `helper_bot`。
+    - `Bot??Bot*`：匹配形如 `Bot` + 任意两字符 + `Bot` + 任意后缀，例如 `Bot12BotX`、`BotA3Bot_something`。
+
+> 提示：如果你希望延续旧行为，让任意包含 `bot_` 的名字都视为机器人，请将该项配置为 `bot_`（不带通配符）。
+
+---
+
 ## API 文档
 
 ### `zbDataAPI.register_player_info_callback(func, list=[]) -> None`

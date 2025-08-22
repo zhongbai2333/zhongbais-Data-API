@@ -1,4 +1,5 @@
 import time
+import fnmatch
 from mcdreforged.api.all import *
 
 from zhongbais_data_api.config import Config
@@ -7,6 +8,21 @@ from zhongbais_data_api.get_data import GetDat
 
 _config, __mcdr_server = None, None
 get_dat = GetDat()
+
+
+def _is_bot_name(player: str, pattern: str) -> bool:
+    """判断玩家名是否匹配机器人规则
+
+    支持 shell 风格通配符: *, ?, []
+    若 pattern 不包含上述通配符，则按“子串包含”判断，以保持与旧配置兼容。
+    """
+    if not pattern:
+        return False
+    # 包含通配符时使用大小写敏感匹配，确保跨平台一致
+    if any(ch in pattern for ch in "*?[]"):
+        return fnmatch.fnmatchcase(player, pattern)
+    # 无通配符则退回到子串匹配（旧行为）
+    return pattern in player
 
 
 def on_load(server: PluginServerInterface, prev):
@@ -35,7 +51,7 @@ def on_unload(_):
 
 # 在线玩家检测
 def on_player_joined(_, player, __):
-    if player not in get_dat.player_list and _config.bot_prefix not in player:
+    if player not in get_dat.player_list and not _is_bot_name(player, _config.bot_keyword):
         get_dat.player_list.append(player)
 
 
