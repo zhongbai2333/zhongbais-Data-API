@@ -27,6 +27,7 @@ class GetDat:
         self._timer: Optional[threading.Timer] = None
         self._stop_flag = threading.Event()
         self._stopped_event = threading.Event()
+        self._server_started = False  # 仅在 on_server_startup 后置为 True，用于拦截过早的手动刷新
 
         self.player_list: List[str] = []
         self._player_list_callbacks: List[PlayerListCallback] = []
@@ -49,6 +50,8 @@ class GetDat:
         self._config = GlobalContext.get_config()
 
     def start(self) -> None:
+        # on_server_startup 调用时标记服务已启动
+        self._server_started = True
         if self._stop_flag.is_set():
             return
 
@@ -89,6 +92,13 @@ class GetDat:
     @new_thread("GetDat-ManualFetch")
     def manual_fetch(self) -> None:
         """外部手动触发一次抓取"""
+        # 在服务器未启动或 RCON 未就绪时忽略手动刷新
+        if not self._server_started or not self._server or not self._server.is_rcon_running():
+            try:
+                self._server.logger.info("[GetDat] manual_fetch ignored: server not started or RCON not ready")
+            except Exception:
+                pass
+            return
         self._fetch_datas()
 
     def _schedule_next(self) -> None:
