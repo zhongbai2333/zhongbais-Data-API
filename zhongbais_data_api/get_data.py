@@ -240,4 +240,17 @@ class GetDat:
         s = re.sub(r"(-?\d+)\s*[bBsSlL]", r"\1", s)
         # 5) 处理省略号 <...> 为合法空列表 []
         s = re.sub(r'<\.\.\.>', r'""', s)
+        # 6) 处理字符串引号：重点修复内层双引号的转义
+        # 单引号包裹的字符串（如 'abc"def' → "abc\"def"）
+        s = re.sub(r"'(.*?)'", 
+            lambda m: '"' + m.group(1).replace('"', r'\"').replace('\\', r'\\') + '"', 
+            s, 
+            flags=re.DOTALL
+        )
+        # 双引号包裹的字符串（如 "abc\"def" → 确保内部转义正确）
+        s = re.sub(r'"(.*?)"', 
+            lambda m: '"' + m.group(1).replace('"', r'\"').replace('\\', r'\\') + '"', 
+            s, 
+            flags=re.DOTALL
+        )
         return s
