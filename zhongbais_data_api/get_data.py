@@ -148,7 +148,7 @@ class GetDat:
                         f"[GetDat] JSON parse failed for {name}: {pe}"
                     )
                     if getattr(self._config, "debug", False):
-                        try
+                        try:
                             err_col = getattr(pe, 'colno', None)
                             if err_col is None:
                                 err_col = max(0, len(json_str) // 2)
@@ -240,17 +240,15 @@ class GetDat:
         s = re.sub(r"(-?\d+)\s*[bBsSlL]", r"\1", s)
         # 5) 处理省略号 <...> 为合法空列表 []
         s = re.sub(r'<\.\.\.>', r'""', s)
-        # 6) 处理字符串引号：重点修复内层双引号的转义
-        # 单引号包裹的字符串（如 'abc"def' → "abc\"def"）
-        s = re.sub(r"'(.*?)'", 
-            lambda m: '"' + m.group(1).replace('"', r'\"').replace('\\', r'\\') + '"', 
-            s, 
-            flags=re.DOTALL
-        )
-        # 双引号包裹的字符串（如 "abc\"def" → 确保内部转义正确）
-        s = re.sub(r'"(.*?)"', 
-            lambda m: '"' + m.group(1).replace('"', r'\"').replace('\\', r'\\') + '"', 
-            s, 
-            flags=re.DOTALL
-        )
+        # # 6) 处理字符串引号：重点修复内层双引号的转义
+        # # 单引号包裹的字符串（如 'abc"def' → "abc\"def"）
+        # s = re.sub(r"'(.*?)'", 
+        #     lambda m: '"' + m.group(1).replace('"', r'\"').replace('\\', r'\\') + '"', 
+        #     s, 
+        #     flags=re.DOTALL
+        # )
+        def escape_str(match):
+            raw_str = match.group(1)  # 获取单引号内的原始字符串
+            return json.dumps(raw_str)  # 自动处理双引号、反斜杠等转义
+        s = re.sub(r"'(.*?)'", escape_str, s, flags=re.DOTALL)
         return s
