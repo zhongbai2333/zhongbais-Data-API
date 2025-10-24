@@ -1,5 +1,6 @@
 import time
 import fnmatch
+from typing import Optional, Any
 from mcdreforged.api.all import *
 
 from zhongbais_data_api.config import Config
@@ -28,15 +29,17 @@ def _is_bot_name(player: str, pattern: str) -> bool:
     return patt_l in name_l
 
 
-def on_load(server: PluginServerInterface, prev):
+def on_load(server: PluginServerInterface, prev: Optional[Any]):
     global _config, __mcdr_server, get_dat
     __mcdr_server = server
     _config = __mcdr_server.load_config_simple(target_class=Config)
     GlobalContext(__mcdr_server, _config)
     get_dat.init_mcdr()
     if prev is not None and hasattr(prev, "get_dat"):
-        get_dat._player_info_callback = prev.get_dat._player_info_callback
-        get_dat._player_list_callback = prev.get_dat._player_list_callback
+        get_dat._player_info_callbacks = prev.get_dat._player_info_callbacks # type: ignore
+        get_dat._player_list_callbacks = prev.get_dat._player_list_callbacks # type: ignore
+    if server.is_server_running():
+        get_dat.start()
 
 
 def on_server_startup(_):
@@ -47,9 +50,9 @@ def on_server_startup(_):
 def on_unload(_):
     get_dat.stop()
     if get_dat.wait_until_stopped(3):
-        __mcdr_server.logger.info("Plugin Exit Finish!")
+        __mcdr_server.logger.info("Plugin Exit Finish!") # type: ignore[union-attr]
     else:
-        __mcdr_server.logger.error("Plugin Exited but GetPos Service Can't Exit!")
+        __mcdr_server.logger.error("Plugin Exited but GetPos Service Can't Exit!") 
 
 
 # 在线玩家检测
