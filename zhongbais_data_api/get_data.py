@@ -95,6 +95,8 @@ class GetDat:
         # 在服务器未启动或 RCON 未就绪时忽略手动刷新
         if not self._server_started or not self._server or not self._server.is_rcon_running():
             try:
+                if getattr(self._config, "debug", False):
+                    self._server.logger.info(f"[GetDat] server_started：{self._server_started} server: { self._server} server.is_rcon_running: { self._server.is_rcon_running()}")
                 self._server.logger.info("[GetDat] manual_fetch ignored: server not started or RCON not ready")
             except Exception:
                 pass
@@ -128,6 +130,8 @@ class GetDat:
                 json_str: Optional[str] = None
                 try:
                     json_str = self._nbt_to_json(raw_nbt)
+                    if json_str.count("{") != json_str.count("}"):
+                        self._server.logger.error(f"[GetDat] json_str括号未闭合{'{'}数量{json_str.count('{')} ,{'}'}数量{json_str.count('}')}")
                     data: Dict[str, Any] = json.loads(json_str)
                     self._dispatch_player_info(name, data)
                     # 收集少量基础信息用于调试
@@ -144,6 +148,19 @@ class GetDat:
                         f"[GetDat] JSON parse failed for {name}: {pe}"
                     )
                     if getattr(self._config, "debug", False):
+                        try:
+                            err_col = getattr(pe, 'colno', None)
+                            if err_col is None:
+                                err_col = max(0, len(json_str) // 2)
+                            err_col = min(err_col, len(json_str) - 1) if json_str else 0
+                            start = max(0, err_col - 50)
+                            end = min(len(json_str), err_col + 50)
+                            context = json_str[start:end]
+                            self._server.logger.error(
+                                f"[GetDat] Error position (col {err_col}): ...{context}..."
+                            )
+                        except Exception:
+                            pass
                         snippet_src = (raw_nbt or "")[:300]
                         snippet_json = (json_str or "")[:300]
                         self._server.logger.info(
@@ -221,4 +238,17 @@ class GetDat:
         s = re.sub(r"(-?\d+\.\d+)\s*[dDfF]", r"\1", s)
         # 4) 去掉整数/字节/短整型/长整型后缀 bBsSlL
         s = re.sub(r"(-?\d+)\s*[bBsSlL]", r"\1", s)
+        # 5) 处理省略号 <...> 为合法空列表 []
+        s = re.sub(r'<\.\.\.>', r'""', s)
+        # # 6) 处理字符串引号：重点修复内层双引号的转义
+        # # 单引号包裹的字符串（如 'abc"def' → "abc\"def"）
+        # s = re.sub(r"'(.*?)'", 
+        #     lambda m: '"' + m.group(1).replace('"', r'\"').replace('\\', r'\\') + '"', 
+        #     s, 
+        #     flags=re.DOTALL
+        # )
+        def escape_str(match):
+            raw_str = match.group(1)  # 获取单引号内的原始字符串
+            return json.dumps(raw_str)  # 自动处理双引号、反斜杠等转义
+        s = re.sub(r"'(.*?)'", escape_str, s, flags=re.DOTALL)
         return s
