@@ -1,6 +1,6 @@
 {
     "id": "zhongbais_data_api",
-    "version": "0.2.3",
+    "version": "0.2.4",
     "name": "zhongbaisDataAPI",
     "description": {
         "en_us": "Polling /data command related APIs",
